@@ -38,7 +38,7 @@ const controller = {
 			discount: +discount,
 			category,
 			description: description.trim(),
-			image: null	
+			image: req.file ? req.file.filename : null
 		}
 		products.push(newProduct);
 		fs.writeFileSync(productsFilePath,JSON.stringify(products,null, 3),'utf8')
@@ -48,24 +48,29 @@ const controller = {
 	// Update - Form to edit
 	edit: (req, res) => {
 		const product = products.find(product=>product.id === +req.params.id)
-		res.render('product-edit-form',{...product});
+		res.render('product-edit-form',{...product,toThousand});
 	},
 	// Update - Method to update
 	update: (req, res) => {
 		// Do the magic
-		const {name,price,discount,description,category} =req.body
-		const productModify = products.map(product =>{
-			if (product.id === +req.params.id){
-				product.name= name.trim();
-				product.price= +price;
-				product.discount= +discount;
-				product.category=category;
-				product.description= description.trim();
+		const productsFilePath = path.join(__dirname, '../data/productsDataBase.json');
+		const products = JSON.parse(fs.readFileSync(productsFilePath, 'utf-8'));
+
+		const productsModify = products.map(product => {
+			if (product.id === +req.params.id) {
+				req.file && (fs.existsSync(`./public/images/products/${product.image}`) && fs.unlinkSync(`./public/images/products/${product.image}`))
+				product.name = req.body.name;
+				product.price = req.body.price;
+				product.discount = req.body.discount;
+				product.description = req.body.description;
+				product.category = req.body.category;
+				product.image = req.file ? req.file.filename : product.image
 			}
+			
 			return product
 		})
-		products.push(productModify);
-		fs.writeFileSync(productsFilePath,JSON.stringify(products,null, 3),'utf8')
+		
+		fs.writeFileSync(productsFilePath,JSON.stringify(productsModify,null, 3),'utf8')
 		return res.redirect("/products")
 	},
 
